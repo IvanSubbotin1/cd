@@ -1,0 +1,171 @@
+# This file is a template, and might need editing before it works on your project.
+# To contribute improvements to CI/CD templates, please follow the Development guide at:
+# https://docs.gitlab.com/ee/development/cicd/templates.html
+# This specific template is located at:
+# https://gitlab.com/gitlab-org/gitlab/-/blob/master/lib/gitlab/ci/templates/Bash.gitlab-ci.yml
+
+# See https://docs.gitlab.com/ee/ci/yaml/index.html for all available options
+
+# you can delete this line if you're not using Docker
+image: busybox:latest
+
+stages:
+  - build
+  - test
+  - deploy
+  - stop
+
+variables:
+  IMAGE_TAG: $CI_COMMIT_BRANCH-$CI_COMMIT_SHORT_SHA
+
+cache:
+  key:
+    files:
+      - composer.lock
+  paths:
+    - vendor/
+
+deploy to stage:
+  stage: deploy
+  variables:
+    TARGET_ENV: staging
+  script:
+    - echo "Do your deploy here to ${TARGET_ENV}"
+  only:
+    - main
+  environment:
+    name: staging
+    on_stop: stop to staging
+    auto_stop_in: 1 day
+
+stop to staging:
+  stage: stop
+  variables:
+    TARGET_ENV: staging
+  script:
+    - echo "STOP ${TARGET_ENV}"
+  only:
+    - main
+  when: manual
+  environment:
+    name: staging
+    action: stop
+
+deploy to production:
+  stage: deploy
+  variables:
+    TARGET_ENV: production
+    MyLogin: "alexzv104"
+  script:
+    - echo "Do your deploy here to ${TARGET_ENV}"
+    - echo "$MyLogin"
+  only:
+    - main
+  when: manual
+  environment:
+    name: production
+    on_stop: stop to production
+
+stop to production:
+  stage: stop
+  variables:
+    TARGET_ENV: production
+  script:
+    - echo "STOP ${TARGET_ENV}"
+  only:
+    - main
+  when: manual
+  environment:
+    name: production
+    action: stop
+
+deploy to preprod:
+  stage: deploy
+  variables:
+    TARGET_ENV: preprod
+    MyLogin: "alexzv104"
+  script:
+    - echo "Do your deploy here to ${TARGET_ENV}"
+    - echo "$MyLogin"
+  only:
+    - main
+  when: manual
+  environment:
+    name: preprod
+    on_stop: stop to preprod
+
+stop to preprod:
+  stage: stop
+  variables:
+    TARGET_ENV: preprod
+  script:
+    - echo "STOP ${TARGET_ENV}"
+  only:
+    - main
+  when: manual
+  environment:
+    name: preprod
+    action: stop
+
+deploy to prod:
+  stage: deploy
+  variables:
+    TARGET_ENV: prod
+  script:
+    - echo "Do your deploy here to ${TARGET_ENV}"
+  only:
+    - main
+  when: manual
+  environment:
+    name: prod
+    on_stop: stop to prod
+
+stop to prod:
+  stage: stop
+  variables:
+    TARGET_ENV: prod
+  script:
+    - echo "STOP ${TARGET_ENV}"
+  only:
+    - main
+  when: manual
+  environment:
+    name: prod
+    action: stop
+
+docker build:
+  image: docker:latest
+  stage: build
+  services: 
+    - docker:dind
+  script:
+    - docker login -u $GITLAB_CI_USER -p $GITLAB_CI_PASSWORD $CI_REGISTRY
+    - echo $CI_REGISTRY_USER $CI_REGISTRY_PASSWORD $CI_REGISTRY  $CI_REGISTRY_IMAGE:$IMAGE_TAG
+    - docker build -t $CI_REGISTRY_IMAGE:$IMAGE_TAG .
+    - docker push $CI_REGISTRY_IMAGE:$IMAGE_TAG
+
+build1:
+  stage: build
+  script:
+    - mkdir -p vendor/
+    - echo "build" > vendor/hello.txt
+
+test1:
+  stage: test
+  resource_group: phone
+  script:
+    - cat vendor/hello.txt
+
+test2:
+  stage: test
+  image: docker:latest
+  services:
+    - docker:dind
+  script:
+    - docker run $CI_REGISTRY_IMAGE:$IMAGE_TAG cat house.txt
+
+deploy1:
+  stage: deploy
+  script:
+    - echo "Do your deploy here"
+
